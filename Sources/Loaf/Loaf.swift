@@ -1,3 +1,4 @@
+
 //
 //  Loaf.swift
 //  Loaf
@@ -22,7 +23,7 @@ final public class Loaf {
             case left
             case right
         }
-		
+        
         /// Specifies the width of the Loaf. (Default is `.fixed(280)`)
         ///
         /// - fixed: Specified as pixel size. i.e. 280
@@ -52,10 +53,11 @@ final public class Loaf {
         
         /// The position of the icon
         let iconAlignment: IconAlignment
-		
+        
         /// The width of the loaf
         let width: Width
-		
+        
+        //changed by erturk
         public init(
             backgroundColor: UIColor,
             textColor: UIColor = .white,
@@ -64,7 +66,7 @@ final public class Loaf {
             icon: UIImage? = Icon.info,
             textAlignment: NSTextAlignment = .left,
             iconAlignment: IconAlignment = .left,
-            width: Width = .fixed(280)) {
+            width: Width ) {
             self.backgroundColor = backgroundColor
             self.textColor = textColor
             self.tintColor = tintColor
@@ -146,6 +148,7 @@ final public class Loaf {
     public enum DismissalReason {
         case tapped
         case timedOut
+        case swipedUp
     }
     
     // MARK: - Properties
@@ -182,17 +185,17 @@ final public class Loaf {
         self.completionHandler = completionHandler
         LoafManager.shared.queueAndPresent(self)
     }
-	
-	/// Manually dismiss a currently presented Loaf
-	///
-	/// - Parameter animated: Whether the dismissal will be animated
-	public static func dismiss(sender: UIViewController, animated: Bool = true){
-		guard LoafManager.shared.isPresenting else { return }
-		guard let vc = sender.presentedViewController as? LoafViewController else { return }
-		vc.dismiss(animated: animated) {
-			vc.delegate?.loafDidDismiss()
-		}
-	}
+    
+    /// Manually dismiss a currently presented Loaf
+    ///
+    /// - Parameter animated: Whether the dismissal will be animated
+    public static func dismiss(sender: UIViewController, animated: Bool = true){
+        guard LoafManager.shared.isPresenting else { return }
+        guard let vc = sender.presentedViewController as? LoafViewController else { return }
+        vc.dismiss(animated: animated) {
+            vc.delegate?.loafDidDismiss()
+        }
+    }
 }
 
 final fileprivate class LoafManager: LoafDelegate {
@@ -238,12 +241,12 @@ final class LoafViewController: UIViewController {
         self.loaf = toast
         self.transDelegate = Manager(loaf: toast, size: .zero)
         super.init(nibName: nil, bundle: nil)
-		
+        
         var width: CGFloat?
         if case let Loaf.State.custom(style) = loaf.state {
             self.font = style.font
             self.textAlignment = style.textAlignment
-			
+            
             switch style.width {
             case .fixed(let value):
                 width = value
@@ -306,6 +309,10 @@ final class LoafViewController: UIViewController {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         view.addGestureRecognizer(tapGesture)
         
+        // added by erturk
+        let swipeGesture = UIPanGestureRecognizer(target: self, action: #selector(handleSwipe))
+        view.addGestureRecognizer(swipeGesture)
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + loaf.duration.length, execute: {
             self.dismiss(animated: true) { [weak self] in
                 self?.delegate?.loafDidDismiss()
@@ -320,7 +327,31 @@ final class LoafViewController: UIViewController {
             self?.loaf.completionHandler?(.tapped)
         }
     }
-    
+   
+    // added by erturk
+    @objc private func handleSwipe(_ recognizer: UIPanGestureRecognizer) {
+        let velocity = recognizer.velocity(in: view)
+
+        if abs(velocity.x) > abs(velocity.y) { // horizontal swipe
+            if velocity.x < 0 {
+                // left swipe detected
+            } else {
+                // right swipe detected
+            }
+        } else { // vertical swipe
+            if velocity.y < 0 {
+                // up swipe detected
+                dismiss(animated: true) { [weak self] in
+                    self?.delegate?.loafDidDismiss()
+                    self?.loaf.completionHandler?(.tapped)
+                }
+            } else {
+                // down swipe detected
+
+            }
+        }
+    }
+
     private func constrainWithIconAlignment(_ alignment: Loaf.Style.IconAlignment, showsIcon: Bool = true) {
         view.addSubview(label)
         
@@ -328,14 +359,16 @@ final class LoafViewController: UIViewController {
             view.addSubview(imageView)
             
             switch alignment {
+            
+            //changed by erturk
             case .left:
                 NSLayoutConstraint.activate([
-                    imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+                    imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
                     imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                    imageView.heightAnchor.constraint(equalToConstant: 28),
-                    imageView.widthAnchor.constraint(equalToConstant: 28),
+                    imageView.heightAnchor.constraint(equalToConstant: 22),
+                    imageView.widthAnchor.constraint(equalToConstant: 22),
                     
-                    label.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 10),
+                    label.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 14),
                     label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4),
                     label.topAnchor.constraint(equalTo: view.topAnchor),
                     label.bottomAnchor.constraint(equalTo: view.bottomAnchor)
